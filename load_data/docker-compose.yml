@@ -1,0 +1,74 @@
+version: '3.8'  # Docker Compose 파일 버전
+
+services:
+  ############################################################
+  # PostgreSQL + pgvector
+  ############################################################
+  postgres:
+    image: pgvector/pgvector:pg16       # PostgreSQL 16 + pgvector 확장 기능 포함 이미지
+    container_name: postgres_pgvector   # 컨테이너 이름
+    restart: always                      # 컨테이너 비정상 종료 시 항상 재시작
+
+    environment:
+      # PostgreSQL 기본 계정 정보
+      POSTGRES_USER: admin               # PostgreSQL 접속 사용자 이름
+      POSTGRES_PASSWORD: admin123        # PostgreSQL 접속 비밀번호
+      POSTGRES_DB: vectordb              # 기본으로 생성할 데이터베이스 이름
+
+    ports:
+      - "55432:5432" 
+      # 이렇게 하면 서로 다른 포트(여기서는 55432)를 사용하게 되어,
+      # 로컬 PC나 서버에서 이미 5432 포트를 쓰는 다른 PostgreSQL 인스턴스와 충돌하지 않습니다.
+      # 즉, 여러 개의 PostgreSQL 컨테이너 혹은 로컬 DB가 동시에 떠 있어도 
+      # 각기 다른 포트 번호(예: 55432, 15432 등)로 매핑해주면 포트 충돌 없이 각각 정상 작동합니다      
+
+      # 내 컴퓨터에서 55432 포트로 접속하면 컨테이너의 5432 포트로 연결됨
+      # 이렇게 포트를 매핑하면 기존에 5432 포트를 사용하는 다른 PostgreSQL 인스턴스와 충돌하지 않고 사용할 수 있습니다.
+      # docker-compose up -d 명령어를 실행하면, 설정한 대로 pgvector가 설치된 PostgreSQL 컨테이너가 자동으로 생성되고 실행됩니다.
+      # 오류 없이 컨테이너가 정상적으로 뜨고, 55432 포트로 접속 시 컨테이너의 벡터DB(PostgreSQL)에 접근할 수 있습니다.
+      # 내컴퓨터에서 55432 포트로 접속하면 컨테이너의 5432 포트로 연결됨
+
+    volumes:
+      # PostgreSQL 데이터 영속화 (컨테이너 재시작 시에도 데이터 유지)
+      
+      - ./database:/var/lib/postgresql/data
+
+      # 초기화 SQL 스크립트 자동 실행
+      # docker-compose 실행 시 init.sql을 이용해 테이블 생성/pgvector 확장 자동 설치
+
+      # ./init.sql 파일이 없으면 같은 디렉토리에 새로 생성하세요.
+      # 예시:
+      # 위 명령어들은 터미널(명령 프롬프트/쉘)에서 실행해야 합니다.
+      # 예: 터미널에 아래 두 줄을 입력하여 파일을 생성합니다.
+      #   touch interview_for_IT.sql
+      #   echo "CREATE EXTENSION IF NOT EXISTS vector;" >> interview_for_IT.sql
+      # 그런 후 아래처럼 마운트합니다.
+      - ./interview_for_IT.sql:/docker-entrypoint-initdb.d/interview_for_IT.sql
+
+    healthcheck:
+      # PostgreSQL이 정상적으로 실행 중인지 확인
+      test: ["CMD-SHELL", "pg_isready -U admin"]  # admin 계정으로 접속 테스트
+      interval: 10s    # 10초마다 헬스체크
+      timeout: 5s      # 응답이 5초 안에 없으면 실패로 간주
+      retries: 5       # 5회 시도 후에도 실패하면 unhealthy 상태로 표시
+
+############################################################
+# 디렉토리 구조 예시
+# ├── docker-compose.yml
+# ├── database/                # PostgreSQL 데이터 저장 디렉토리
+# └── init.sql                  # 초기화 SQL 스크립트
+#
+# init.sql 내용 예시:
+# -------------------------------------
+# -- pgvector 확장 기능 활성화
+# CREATE EXTENSION IF NOT EXISTS vector;
+#
+# -- 예제 테이블 생성
+# CREATE TABLE documents (
+#   id SERIAL PRIMARY KEY,
+#   content TEXT,
+#   embedding VECTOR(1536) -- OpenAI 등 1536차원 임베딩
+# );
+# -------------------------------------
+############################################################
+
