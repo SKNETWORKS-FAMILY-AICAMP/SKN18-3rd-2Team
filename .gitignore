@@ -10,5 +10,9 @@ __pycache__
 *.pyzz
 *.pywzz
 
-/data
-/database
+*/data
+**/database
+쌤/
+*.ipynb    
+
+*test*

@@ -6,7 +6,7 @@ services:
   ############################################################
   postgres:
     image: pgvector/pgvector:pg16       # PostgreSQL 16 + pgvector 확장 기능 포함 이미지
-    container_name: postgres_pgvector   # 컨테이너 이름
+    container_name: postgres_pgvector_3rd_skn18  # 컨테이너 이름
     restart: always                      # 컨테이너 비정상 종료 시 항상 재시작
 
     environment:

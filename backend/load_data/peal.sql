@@ -7,8 +7,9 @@ CREATE EXTENSION IF NOT EXISTS vector;
 -- 2. qa_embedding 테이블 생성 (VectorDB만 사용)
 CREATE TABLE IF NOT EXISTS qa_embedding (
     id BIGSERIAL PRIMARY KEY,
-    embedding VECTOR(1024) NOT NULL,  -- 1024차원 임베딩 (HuggingFace)  (default: 1024)
-    metadata JSONB,  -- 제품명 및 기타 메타데이터
+    embedding VECTOR(768) NOT NULL,  -- 768차원 임베딩 (ko-sroberta-multitask)
+    content TEXT NOT NULL,  -- 데이터
+    metadata JSONB,  -- 제품명
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -57,7 +58,7 @@ FROM qa_embedding
 UNION ALL
 SELECT 
     '벡터 차원' as metric,
-    384 as value
+    768 as value
 UNION ALL
 SELECT 
     '고유 제품 수' as metric,
