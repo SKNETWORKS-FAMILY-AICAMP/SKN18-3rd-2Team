@@ -1,0 +1,22 @@
+python-dotenv==1.1.1 # 환경 변수 관리
+
+# 데이터 처리 및 임베딩
+pandas==2.3.3 
+sentence-transformers
+
+# LLM 및 웹 UI
+ollama
+streamlit
+
+# PostgreSQL & PGVector
+pgvector==0.4.1
+psycopg2-binary==2.9.10
+
+# LangChain 패키지
+langchain==0.3.26 # LangChain 메인 패키지
+langchain-core==0.3.74 # LangChain 코어 기능
+langchain-community==0.3.27 # LangChain 커뮤니티 확장
+langchain-experimental==0.3.4 # 새로운 기능을 미리 사용해볼 수 있는 패키지
+langsmith==0.4.14 # LangChain 앱 디버깅, 테스트, 모니터링 도구
+
+tqdm # 진행 바 라이브러리
