@@ -1,14 +1,29 @@
-# MINIPROJ3/app/app.py
+import html
+import re
 import time
 import streamlit as st
 
 from screen.constant import ROLE_TYPE
-from screen.history import add_history, clear_history, render_chat_box, render_scroll_to_bottom_button
+from screen.history import (
+    add_history,
+    clear_history,
+    ensure_initial_greeting,
+    render_chat_box,
+    render_scroll_to_bottom_button,
+)
 from screen.input import get_prompt
 from screen.utils import init_page, init_display
 from screen.top10 import render_top10
-from screen.pill_wallet import render_pill_wallet, render_pending_suggestions
+from screen.pill_wallet import render_pill_wallet, render_pending_suggestions, process_user_message
 
+
+def sanitize_answer(text: str) -> str:
+    if not text:
+        return ""
+    cleaned = text.replace("**", "")
+    cleaned = re.sub(r"\s*#+\s*", " ", cleaned)
+    cleaned = cleaned.replace("*", "")
+    return cleaned.strip()
 
 
 def main():
@@ -22,16 +37,17 @@ def main():
         render_pill_wallet()
 
     with col_right:
-        st.title("의약품 정보 제공 챗봇")
+        st.title("💊의약품 정보 제공 챗봇💊")
         st.caption("AI 약사에게 궁금한 점을 질문해보세요")
 
         _left, _sp, _btn = st.columns([10, 0.2, 1])
         with _btn:
-            if st.button("🧹", help="대화 지우기", use_container_width=True):
+            if st.button("🗑️", help="대화 지우기", use_container_width=True):
                 clear_history()
                 st.rerun()
 
-        CHAT_BOX_HEIGHT = "60vh"
+        CHAT_BOX_HEIGHT = "50vh"
+        ensure_initial_greeting("안녕하세요. 무엇을 도와드릴까요?")
         update_chat_box = render_chat_box(height=CHAT_BOX_HEIGHT)
 
         # ⬇️ 버튼(채팅박스 바로 아래)
@@ -61,7 +77,18 @@ def main():
             for part in provider(prompt):
                 chunks.append(str(part))
                 time.sleep(0.02)
-            final_answer = "".join(chunks)
+            final_answer = sanitize_answer("".join(chunks))
+
+            if final_answer:
+                assistant_template = "<div class=\"msg assistant\"><div class=\"content\">{}</div></div>"
+                chunk_len = 8
+                for idx in range(0, len(final_answer), chunk_len):
+                    partial_answer = final_answer[: idx + chunk_len]
+                    partial_html = html.escape(partial_answer).replace("\n", "<br>")
+                    update_chat_box(assistant_template.format(partial_html))
+                    time.sleep(0.04)
+            else:
+                update_chat_box()
 
             add_history(ROLE_TYPE.assistant, final_answer)
             update_chat_box()  # 로딩 말풍선 제거 + 최종 답변 반영

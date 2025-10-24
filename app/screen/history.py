@@ -10,6 +10,14 @@ def _ensure():
         st.session_state.history = []
 
 
+def ensure_initial_greeting(message: str):
+    _ensure()
+    if not st.session_state.history:
+        st.session_state.history.append(
+            {"role": ROLE_TYPE.assistant.value, "content": message}
+        )
+
+
 def clear_history():
     st.session_state.history = []
 
@@ -95,7 +103,7 @@ def render_scroll_to_bottom_button(label: str = "⬇️ 최근 메시지 보기"
     components.html 로 JS 실행.
     """
     btn_html = f"""
-    <div style="text-align:center; margin-top:8px;">
+    <div style="text-align:center; margin-top:7px;">
       <button id="scroll_bottom_btn"
               style="padding:6px 12px; border-radius:10px; border:1px solid #e5e7eb;
                      background:#fff; cursor:pointer;">
