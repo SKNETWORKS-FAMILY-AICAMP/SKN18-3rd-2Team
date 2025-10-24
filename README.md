@@ -5,17 +5,70 @@
 
 ---
 
-## 👥 팀 소개
+## 👥 언젠가는 슬기로울 개발자 생활팀 소개
 
-| 역할 | 이름 | 담당 업무 |
-|------|------|-----------|
-| 🎯 **팀장** | **채린** | 프론트엔드, RAG, pgvector |
-| 💻 **팀원** | **김규리** | 백엔드, RAG, pgvector |
-| 📝 **팀원** | **정인하** | RAG, pgvector, 리드미 |
-| 🔧 **팀원** | **장이건** | RAG, pgvector |
-| ⚙️ **팀원** | **조준호** | RAG, pgvector, 리드미 |
-
----
+<table align="center">
+  <tr>
+    <td align="center" valign="top">
+      <img src="lin.png" width="150" height="150" style="object-fit: cover;" alt="채린"/>
+      <br />
+      <sub><b>채린/팀장</b></sub>
+      <br />
+      <sub>프론트엔드, RAG, pgvector</sub>
+      <br />
+      <sub>
+      "아이참.....나 사내연애는 별론데"</sub>
+      <br />
+      <a href="https://github.com/cofls99" target="_blank">cofls99</a>
+    </td>
+    <td align="center" valign="top">
+      <img src="gyu.png" width="150" height="150" style="object-fit: cover;" alt="규리"/>
+      <br />
+      <sub><b>규리/팀원</b></sub>
+      <br />
+      <sub>백엔드, RAG, pgvector</sub>
+      <br />
+      <sub>
+      "제가 과연...슬기로울 수 있을까요?"</sub>
+      <br />
+      <a href="https://github.com/GyuriKimm" target="_blank">GyuriKimm</a>
+    </td><td align="center" valign="top">
+      <img src="inha.png" width="150" height="150" style="object-fit: cover;" alt="인하"/>
+      <br />
+      <sub><b>인하/팀원</b></sub>
+      <br />
+      <sub>RAG, pgvector, 리드미</sub>
+      <br />
+      <sub>
+      "교수님...제가 의학적인 팩트에선 틀린 게 없는데요?"</sub>
+      <br />
+      <a href="https://github.com/enapeace" target="_blank">enapeace</a>
+    </td><td align="center" valign="top">
+      <img src="ee.png" width="150" height="150" style="object-fit: cover;" alt="이건"/>
+      <br />
+      <sub><b>이건/팀원</b></sub>
+      <br />
+      <sub>RAG, pgvector</sub>
+      <br />
+      <sub>
+      "교수님! 벌써 열다섯 번째 전화드려 죄송합니다!"</sub>
+      <br />
+      <a href="https://github.com/poolbbang" target="_blank">poolbbang</a>
+    </td><td align="center" valign="top">
+      <img src="cho.png" width="150" height="150" style="object-fit: cover;" alt="준호"/>
+      <br />
+      <sub><b>준호/팀원</b></sub>
+      <br />
+      <sub>RAG, pgvector, 리드미</sub>
+      <br />
+      <sub>
+      "제발 오늘은 아무 일도 없다고 해주라"</sub>
+      <br />
+      <a href="https://github.com/lemondear" target="_blank">lemondear</a>
+</a>
+    </td>
+  </tr>
+</table>
 
 ## 📌 프로젝트 요약
 
@@ -329,7 +382,7 @@ True
 
 ## 후기
 채린(팀장) : 
-조준호 : 
 김규리 : 
 정인하 : 랭그래프를 직접 구현해보고 돌아가는 것을 보니 신기했다. 서로 배려하고 적극적으로 참여하는 팀장팀원 덕분에 수월하게 잘 끝났던 단위였다.  
 장이건 : 
+조준호 : 어디서 부터 시작해야할지 막막했는데, 팀원들의 도움을 받아가며 해결해 나갈수 있었던 좋은 경험이었다.
