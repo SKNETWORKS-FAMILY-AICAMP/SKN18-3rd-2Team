@@ -17,7 +17,7 @@
       <sub>프론트엔드, RAG, pgvector</sub>
       <br />
       <sub>
-      "아이참.....나 사내연애는 별론데"</sub>
+      "아이참.....나 코드랑 연애는 별론데"</sub>
       <br />
       <a href="https://github.com/cofls99" target="_blank">cofls99</a>
     </td>
@@ -40,7 +40,7 @@
       <sub>RAG, pgvector, 리드미</sub>
       <br />
       <sub>
-      "교수님...제가 의학적인 팩트에선 틀린 게 없는데요?"</sub>
+      "교수님...제 코드 진행은 틀린 게 없는데요?"</sub>
       <br />
       <a href="https://github.com/enapeace" target="_blank">enapeace</a>
     </td><td align="center" valign="top">
@@ -51,7 +51,7 @@
       <sub>RAG, pgvector</sub>
       <br />
       <sub>
-      "교수님! 벌써 열다섯 번째 전화드려 죄송합니다!"</sub>
+      "교수님! 벌써 열다섯 번째 커밋하여 죄송합니다!"</sub>
       <br />
       <a href="https://github.com/poolbbang" target="_blank">poolbbang</a>
     </td><td align="center" valign="top">
