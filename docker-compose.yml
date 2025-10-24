@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  # PostgreSQL + pgvector 데이터베이스
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: drug_rag_postgres
+    restart: always
+    environment:
+      POSTGRES_DB: drug_rag_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - rag_network
+
+  # Ollama 서버 (Docker 컨테이너)
+  ollama:
+    image: ollama/ollama:latest
+    container_name: drug_rag_ollama
+    restart: always
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+      - OLLAMA_ORIGINS=*
+    networks:
+      - rag_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    # GPU 지원 (NVIDIA GPU가 있는 경우 주석 해제)
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+volumes:
+  postgres_data:
+  ollama_data:
+
+networks:
+  rag_network:
+    driver: bridge

@@ -1,0 +1,6 @@
+.venv
+.kiro
+.env
+/database/database
+.vscode
+__pycache__
