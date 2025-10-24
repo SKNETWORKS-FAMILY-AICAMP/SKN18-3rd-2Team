@@ -52,7 +52,7 @@ def build_prompt() -> ChatPromptTemplate:
                     "너는 한국어 의약품 정보 안내 챗봇이야. "
                     "아래 CONTEXT(근거)를 바탕으로만 정확하고 간결하게 답하고, "
                     "모르는 것은 모른다고 말해. "
-                    "효능/용법, 사용 전 주의, 상호작용, 이상반응, 보관법 등은 반드시 정확한 표현을 사용해.\n\n"
+                    "효능/용법, 사용 전 주의사항, 이상반응, 보관법 등은 반드시 정확한 표현을 사용해.\n\n"
                     "FORMAT 지침:\n"
                     "- 핵심 요약 3~5줄\n"
                     "- 필요한 경우 목록으로 정리\n"
@@ -76,6 +76,8 @@ def build_guard_prompt() -> ChatPromptTemplate:
                 "system",
                 (
                     "너는 입력 문장이 '의약품/복약/약물정보' 도메인과 관련 있는지 판별하는 분류기야. "
+                    "질문에 실제 의약품 이름, 의약품 브랜드명, 약물 성분, 복약 행위, 의약적 처치 등 구체적 약물 맥락이 명시된 경우에만 'YES'를 출력해. "
+                    "가상인물·외계인·음악·예술 등 약물과 무관한 소재는 모두 'NO'라고 판별해. "
                     "관련 있으면 'YES', 없으면 'NO' 라는 한 단어만 출력해."
                 ),
             ),
@@ -83,8 +85,14 @@ def build_guard_prompt() -> ChatPromptTemplate:
                 "human",
                 (
                     "판별 기준 예시:\n"
-                    "- YES: 약 이름/제품명/성분/효능/용법/용량/상호작용/보관/금기/주의/부작용\n"
-                    "- NO: 일반 상식, 시사, 주식, 스포츠, 법률(약과 무관), 농담, 음악, 종교 등\n\n"
+                    "- YES: 약 이름/제품명/성분/효능/용법/용량/상호작용/보관/금기/주의/부작용 등과 명시적으로 연결된 질문\n"
+                    "- YES: 사용자가 현재 증상을 설명하며 복용 할 수 있는약을 추천해(알려)달라고 하는 질문\n"
+                    "- YES: 약 이름을 명시하며 그 약에 대해서 알려달라고 하는 질문\n"
+                    "- NO: 일반 상식, 시사, 주식, 스포츠, 법률(약과 무관), 농담, 음악, 종교, 가상/외계인 소재 등\n"
+                    "예시 판단:\n"
+                    "- 질문: '지르텍에 대해서 알려줘' → YES\n"
+                    "- 질문: '타이레놀 500mg을 복용했는데 발열이 계속돼요. 부작용인가요?' → YES\n"
+                    "- 질문: '바흐의 녹턴 교향곡이 외계인에게 주는 증상은?' → NO\n\n"
                     "입력: {question}\n"
                     "정답(YES/NO)만 출력:"
                 ),
@@ -249,17 +257,6 @@ def main():
     load_dotenv()
     args = parse_args()
     run(args.collection, args.k)
-    # print("질문을 입력하세요 >> ")
-    # question = input()
-    # result = run_once(question, args.collection, args.k)
-
-    # # 보기 좋게 출력
-    # from pprint import pprint
-    # print("\n=== IN_DOMAIN ===\n", result["in_domain"])
-    # print("\n=== ANSWER ===\n")
-    # print(result["answer"])
-    # print("\n=== CITATIONS ===")
-    # pprint(result["citations"])
 
 
 if __name__ == "__main__":
