@@ -1,4 +1,3 @@
-# MINIPROJ3/app/screen/pill_wallet.py
 import os
 import time
 import json
@@ -262,97 +261,89 @@ def render_pending_suggestions():
 def render_pill_wallet():
     _ensure_states()
 
-    st.markdown("""
-    <style>
-    .walletbox { border:1px solid #e6e6e6; border-radius:14px; padding:14px 16px; background:#fafafa; }
-    .walletbox h3 { margin:0 0 10px 0; font-size:1.05rem; }
-    .walletitem { display:flex; align-items:center; justify-content:space-between;
-                  padding:6px 6px; border-radius:10px; margin-bottom:4px; background:#fff; }
-    </style>
-    """, unsafe_allow_html=True)
+    # 🔲 박스 컨테이너 시작(여기 안에 모든 UI 배치)
+    with st.container(border=True):
+        st.markdown("### 💊 내 약 지갑")
 
-    st.markdown('<div class="walletbox"><h3>💊 내 약 지갑</h3>', unsafe_allow_html=True)
+        # ── 1) 직접 추가 (박스 내부)
+        with st.expander("➕ 직접 추가", expanded=False):
+            st.caption("제품명(또는 복용 중인 약 이름)과 성분명을 입력해주세요.")
 
+            # 세션 초기값 보장
+            if "wallet_manual_name" not in st.session_state:
+                st.session_state.wallet_manual_name = ""
+            if "wallet_manual_ingr" not in st.session_state:
+                st.session_state.wallet_manual_ingr = ""
+            if "__pill_wallet_msg" not in st.session_state:
+                st.session_state.__pill_wallet_msg = ""
+            if "__pill_wallet_msg_type" not in st.session_state:
+                st.session_state.__pill_wallet_msg_type = "info"
 
-    with st.expander("➕ 직접 추가", expanded=False):
-        st.caption("제품명(또는 복용 중인 약 이름)과 성분명을 입력해주세요.")
+            c1, c2 = st.columns([2, 3])
+            with c1:
+                st.text_input("제품명", key="wallet_manual_name", placeholder="예) 타이레놀")
+            with c2:
+                st.text_input("성분명", key="wallet_manual_ingr", placeholder="예) 아세트아미노펜")
 
-        # 세션 초기값 보장
-        if "wallet_manual_name" not in st.session_state:
-            st.session_state.wallet_manual_name = ""
-        if "wallet_manual_ingr" not in st.session_state:
-            st.session_state.wallet_manual_ingr = ""
-        if "__pill_wallet_msg" not in st.session_state:
-            st.session_state.__pill_wallet_msg = ""
-        if "__pill_wallet_msg_type" not in st.session_state:
-            st.session_state.__pill_wallet_msg_type = "info"
+            # 콜백들
+            def _on_add():
+                n = (st.session_state.wallet_manual_name or "").strip()
+                g = (st.session_state.wallet_manual_ingr or "").strip()
+                if not n:
+                    st.session_state.__pill_wallet_msg = "제품명을 입력해주세요."
+                    st.session_state.__pill_wallet_msg_type = "warning"
+                    return
+                # 실제 추가
+                _add_to_wallet(n, g or "성분 미상")
+                # 입력칸 비우기
+                st.session_state.wallet_manual_name = ""
+                st.session_state.wallet_manual_ingr = ""
+                st.session_state.__pill_wallet_msg = f"‘{n}’이(가) 약 지갑에 추가되었습니다."
+                st.session_state.__pill_wallet_msg_type = "success"
 
-        c1, c2 = st.columns([2, 3])
-        with c1:
-            st.text_input("제품명", key="wallet_manual_name", placeholder="예) 타이레놀")
-        with c2:
-            st.text_input("성분명", key="wallet_manual_ingr", placeholder="예) 아세트아미노펜")
+            def _on_clear():
+                st.session_state.wallet_manual_name = ""
+                st.session_state.wallet_manual_ingr = ""
+                st.session_state.__pill_wallet_msg = ""
+                st.session_state.__pill_wallet_msg_type = "info"
 
-        # 콜백들
-        def _on_add():
-            n = (st.session_state.wallet_manual_name or "").strip()
-            g = (st.session_state.wallet_manual_ingr or "").strip()
-            if not n:
-                st.session_state.__pill_wallet_msg = "제품명을 입력해주세요."
-                st.session_state.__pill_wallet_msg_type = "warning"
-                return
-            # 실제 추가
-            _add_to_wallet(n, g or "성분 미상")
-            # 입력칸 비우기 (콜백에서만 세션 값 변경 OK)
-            st.session_state.wallet_manual_name = ""
-            st.session_state.wallet_manual_ingr = ""
-            st.session_state.__pill_wallet_msg = f"‘{n}’이(가) 약 지갑에 추가되었습니다."
-            st.session_state.__pill_wallet_msg_type = "success"
+            add_col1, add_col2, _ = st.columns([1, 1, 3])
+            with add_col1:
+                st.button("추가하기", type="primary", on_click=_on_add, use_container_width=True)
+            with add_col2:
+                st.button("입력 지우기", on_click=_on_clear, use_container_width=True)
 
-        def _on_clear():
-            st.session_state.wallet_manual_name = ""
-            st.session_state.wallet_manual_ingr = ""
-            st.session_state.__pill_wallet_msg = ""
-            st.session_state.__pill_wallet_msg_type = "info"
+            # 메시지 표시
+            if st.session_state.__pill_wallet_msg:
+                if st.session_state.__pill_wallet_msg_type == "success":
+                    st.success(st.session_state.__pill_wallet_msg)
+                elif st.session_state.__pill_wallet_msg_type == "warning":
+                    st.warning(st.session_state.__pill_wallet_msg)
+                else:
+                    st.info(st.session_state.__pill_wallet_msg)
 
-        add_col1, add_col2, _ = st.columns([1, 1, 3])
-        with add_col1:
-            st.button("추가하기", type="primary", on_click=_on_add, use_container_width=True)
-        with add_col2:
-            st.button("입력 지우기", on_click=_on_clear, use_container_width=True)
+        # ── 2) 지갑 목록 (✅ 같은 박스 내부에 렌더링)
+        if not st.session_state.pill_wallet:
+            st.caption("지갑이 비어 있어요. 대화 중 ‘복용 중’, ‘처방받음’과 함께 약 이름을 말하면 제안해 드리거나, 위의 ‘➕ 직접 추가’를 이용하세요.")
+            return
 
-        # 메시지 표시
-        if st.session_state.__pill_wallet_msg:
-            if st.session_state.__pill_wallet_msg_type == "success":
-                st.success(st.session_state.__pill_wallet_msg)
-            elif st.session_state.__pill_wallet_msg_type == "warning":
-                st.warning(st.session_state.__pill_wallet_msg)
-            else:
-                st.info(st.session_state.__pill_wallet_msg)
+        # 항목 렌더
+        for idx, item in enumerate(st.session_state.pill_wallet):
+            name = item["name"]
+            ingr = item["ingredient"]
+            added = item["added_at"]
 
-
-    # 지갑 목록
-    if not st.session_state.pill_wallet:
-        st.caption("지갑이 비어 있어요. 대화 중 ‘복용 중’, ‘처방받음’과 함께 약 이름을 말하면 제안해 드리거나, 위의 ‘➕ 직접 추가’를 이용하세요.")
-        st.markdown("</div>", unsafe_allow_html=True)
-        return
-
-    for item in st.session_state.pill_wallet:
-        name = item["name"]
-        ingr = item["ingredient"]
-        with st.container():
             col1, col2 = st.columns([4, 1])
             with col1:
                 st.markdown(
-                    f'<div class="walletitem"><div>**{name}**  '
-                    f'<span style="color:#6b7280;">({ingr})</span><br>'
-                    f'<span style="color:#9ca3af; font-size:0.85rem;">추가: {item["added_at"]}</span>'
-                    f'</div></div>',
+                    f"**{name}**  <span style='color:#6b7280;'>({ingr})</span><br>"
+                    f"<span style='color:#9ca3af; font-size:0.85rem;'>추가: {added}</span>",
                     unsafe_allow_html=True
                 )
             with col2:
-                if st.button("삭제", key=f"del_{name}", use_container_width=True):
-                    st.session_state.pill_wallet = [x for x in st.session_state.pill_wallet if x["name"] != name]
-                    st.experimental_rerun()
-
-    st.markdown("</div>", unsafe_allow_html=True)
+                if st.button("삭제", key=f"del_{idx}_{name}", use_container_width=True):
+                    st.session_state.pill_wallet = [
+                        x for x in st.session_state.pill_wallet
+                        if not (x['name'] == name and x['added_at'] == added)
+                    ]
+                    st.rerun()
