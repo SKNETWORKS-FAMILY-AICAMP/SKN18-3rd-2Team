@@ -1,0 +1,12 @@
+# Python & Streamlit
+__pycache__/
+*.pyc
+.venv/
+.env
+.DS_Store
+.vscode/
+*.db
+*.sqlite3
+
+# Streamlit cache
+.streamlit/
