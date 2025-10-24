@@ -3,6 +3,7 @@
 """
 
 from tqdm import tqdm
+from reset_sequence import reset_sequence
 from config import (
     connect_db, 
     load_json_documents, 
@@ -50,6 +51,12 @@ def insert_data(json_path=None, clear_mode=False):
     
     print(f"청킹 완료: {len(all_chunks)}개 청크")
     
+    # 각 청크에 제품명 추가
+    print("각 청크에 제품명 추가 중...")
+    from config import add_product_name_to_chunks
+    all_chunks = add_product_name_to_chunks(all_chunks)
+    print(f"제품명 추가 완료: {len(all_chunks)}개 청크")
+    
     # 임베딩 모델 로드 부분 주석처리 (데이터만 삽입)
     model, platform_name = get_embedding_model(return_platform_name=True) if 'return_platform_name' in get_embedding_model.__code__.co_varnames else (get_embedding_model(), "Unknown Platform")
     print(f"\n{platform_name} 임베딩 모델 로드 중...")
@@ -58,24 +65,30 @@ def insert_data(json_path=None, clear_mode=False):
     cursor = conn.cursor()
     
     try:
-        # 기존 데이터 삭제 (clear_mode가 True일 때)
+        # 기존 데이터 삭제 및 ID 초기화 (clear_mode가 True일 때)
         if clear_mode:
             print("기존 데이터 삭제 중...")
             cursor.execute("DELETE FROM qa_embedding")
             conn.commit()
             print("기존 데이터 삭제 완료")
+            
+            # 시퀀스 리셋 함수 사용
+           
+            reset_sequence()
+            print("ID 초기화 완료")
         
         # VectorDB에 임베딩 삽입 (배치 처리)
         print("\nVectorDB 임베딩 삽입 중...")
         inserted_count = 0
         
-        # 배치 크기 설정 (OpenAI는 100개씩, HuggingFace는 10개씩)
-        batch_size = 1
+        # 배치 크기 설정 (HuggingFace는 10개씩)
+        batch_size = 10
         
         # 배치별로 처리 
         for i in tqdm(range(0, len(all_chunks), batch_size)):
             batch_chunks = all_chunks[i:i + batch_size]
             
+            # 임베딩 계산
             batch_texts = [chunk.page_content for chunk in batch_chunks]
             if hasattr(model, 'embed_documents'):
                 embeddings = model.embed_documents(batch_texts)
@@ -86,16 +99,18 @@ def insert_data(json_path=None, clear_mode=False):
                 if hasattr(embeddings, 'tolist'):
                     embeddings = embeddings.tolist()
             
-            # 데이터만 삽입
+            # 임베딩과 데이터 삽입
             import psycopg2.extras
-            for chunk in batch_chunks:
+            for i, chunk in enumerate(batch_chunks):
                 product_name = chunk.metadata.get('제품명', 'Unknown')
                 content = chunk.page_content 
                 metadata_dict = {'제품명': product_name}
+                embedding = embeddings[i]  # 계산된 임베딩 사용
+                
                 cursor.execute("""
                     INSERT INTO qa_embedding (embedding, metadata, content)
-                    VALUES (NULL, %s, %s)
-                """, (psycopg2.extras.Json(metadata_dict), content))
+                    VALUES (%s, %s, %s)
+                """, (embedding, psycopg2.extras.Json(metadata_dict), content))
                 inserted_count += 1
         
         conn.commit()

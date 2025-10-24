@@ -5,10 +5,12 @@
 
 from .model import llm
 from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.documents import Document
 from langgraph.graph import StateGraph, END
 from typing import TypedDict, List, Dict, Any
 from vectordb.customPGVector import CustomPGVector
 from .model import embeddings_model
+import re
 
 
 
@@ -89,7 +91,7 @@ def question_type_agent(state: MedicineSelfRAGState) -> MedicineSelfRAGState:
 1. symptom - 증상에 대한 약 추천 요청
 2. medicine_info - 특정 약의 정보 요청  
 3. side_effect - 약 복용 후 부작용 관련
-5. no - 약품/의료와 무관한 질문
+5. general - 약품/의료와 무관한 질문
 
 답변은 반드시 다음 형식으로만 하세요:
 - symptom
@@ -231,24 +233,44 @@ def medicine_info_agent(state: MedicineSelfRAGState) -> MedicineSelfRAGState:
     """
     question = state["question"]
     
-    # LangGraph 방식으로 직접 LLM 호출
+    # 1차: 메타데이터 키워드 검색
+    vectorstore = get_vectorstore("medicine_collection")
+    keyword_docs = search_by_product_name(vectorstore, question)
+    
+    # 2차: 벡터 유사도 검색
+    vector_docs = vectorstore.similarity_search(question, k=3)
+    
+    # 3차: 결과 결합 (키워드 검색 우선, 중복 제거)
+    all_docs = keyword_docs + vector_docs
+    unique_docs = remove_duplicate_documents(all_docs)
+    
+    if not unique_docs:
+        return {
+            **state,
+            "final_answer": f"'{question}'에 대한 약품 정보를 찾을 수 없습니다."
+        }
+    
+    # 검색된 문서들을 컨텍스트로 결합
+    context = "\n\n".join([doc.page_content for doc in unique_docs])
+    
+    # LLM으로 답변 생성
     message = [
-        SystemMessage(content="""아래 약 이름에 대한 정보를 상세히 요약해줘.
-효능, 복용법, 부작용, 주의사항 등을 포함해줘.
+        SystemMessage(content="""검색된 약품 정보를 바탕으로 사용자의 질문에 정확한 답변을 제공하세요.
+약품명, 효능, 복용법, 부작용, 주의사항 등을 포함하여 답변하세요.
 
 출력 형식:
 - 약 이름:
 - 주요 효능:
 - 복용 방법:
 - 부작용 및 주의사항:"""),
-        HumanMessage(content=f"💊 약 이름: {question}")
+        HumanMessage(content=f"💊 약 이름: {question}\n\n관련 정보:\n{context}")
     ]
     
     response = llm.invoke(message)
     answer = response.content if hasattr(response, 'content') else str(response)
     answer = answer.strip()
     
-    print(f"[약 정보 제공] 완료")
+    print(f"[약 정보 제공] 완료 - {len(unique_docs)}개 문서 검색")
     
     return {
         **state,
@@ -266,9 +288,36 @@ def side_effect_agent(state: MedicineSelfRAGState) -> MedicineSelfRAGState:
     """
     question = state["question"]
     
-    # LangGraph 방식으로 직접 LLM 호출
+    # 질문에서 약 이름 추출 (간단한 패턴 매칭)
+    medicine_names = extract_medicine_names(question)
+    
+    vectorstore = get_vectorstore("medicine_collection")
+    all_docs = []
+    
+    # 1차: 각 약 이름에 대해 메타데이터 키워드 검색
+    for medicine_name in medicine_names:
+        keyword_docs = search_by_product_name(vectorstore, medicine_name)
+        all_docs.extend(keyword_docs)
+    
+    # 2차: 벡터 유사도 검색
+    vector_docs = vectorstore.similarity_search(question, k=4)
+    all_docs.extend(vector_docs)
+    
+    # 3차: 결과 결합 및 중복 제거
+    unique_docs = remove_duplicate_documents(all_docs)
+    
+    if not unique_docs:
+        return {
+            **state,
+            "final_answer": "복용한 약에 대한 정보를 찾을 수 없습니다."
+        }
+    
+    # 검색된 문서들을 컨텍스트로 결합
+    context = "\n\n".join([doc.page_content for doc in unique_docs])
+    
+    # LLM으로 부작용 분석
     message = [
-        SystemMessage(content="""사용자가 복용한 약 목록과 나타난 증상을 바탕으로
+        SystemMessage(content="""검색된 약품 정보를 바탕으로 사용자가 복용한 약과 증상을 분석하여
 어떤 약에서 부작용이 발생했을 가능성이 높은지 추론해줘.
 각 약의 성분과 부작용 사례를 근거로 설명해줘.
 
@@ -276,14 +325,14 @@ def side_effect_agent(state: MedicineSelfRAGState) -> MedicineSelfRAGState:
 - 의심되는 약:
 - 근거 설명:
 - 권장 조치:"""),
-        HumanMessage(content=f"💊 복용 약 목록과 증상: {question}")
+        HumanMessage(content=f"💊 복용 약 목록과 증상: {question}\n\n관련 약품 정보:\n{context}")
     ]
     
     response = llm.invoke(message)
     answer = response.content if hasattr(response, 'content') else str(response)
     answer = answer.strip()
     
-    print(f"[부작용 분석] 완료")
+    print(f"[부작용 분석] 완료 - {len(unique_docs)}개 문서 검색")
     
     return {
         **state,
@@ -291,6 +340,65 @@ def side_effect_agent(state: MedicineSelfRAGState) -> MedicineSelfRAGState:
     }
 
 
+
+################### 헬퍼 함수들 ###################
+
+def search_by_product_name(vectorstore, medicine_name: str):
+    """메타데이터의 제품명에서 약 이름 검색"""
+    try:
+        with vectorstore.conn.cursor() as cur:
+            cur.execute(
+                f"""
+                SELECT content, metadata
+                FROM {vectorstore.table}
+                WHERE metadata->>'제품명' ILIKE %s
+                """,
+                (f"%{medicine_name}%",)
+            )
+            rows = cur.fetchall()
+            return [Document(page_content=row[0], metadata=row[1]) for row in rows]
+    except Exception as e:
+        print(f"[키워드 검색 오류] {e}")
+        return []
+
+def extract_medicine_names(question: str):
+    """질문에서 약 이름 추출 (간단한 패턴 매칭)"""
+    # 간단한 약 이름 패턴들
+    medicine_patterns = [
+        r'(\w+정)',  # ~정
+        r'(\w+캡슐)',  # ~캡슐
+        r'(\w+알약)',  # ~알약
+        r'(\w+타블렛)',  # ~타블렛
+        r'(\w+시럽)',  # ~시럽
+        r'(\w+연고)',  # ~연고
+        r'(\w+크림)',  # ~크림
+    ]
+    
+    medicine_names = []
+    for pattern in medicine_patterns:
+        matches = re.findall(pattern, question)
+        medicine_names.extend(matches)
+    
+    # 일반적인 약 이름들도 추가
+    common_medicines = ['타이레놀', '게보린', '아스피린', '이부프로펜', '아세트아미노펜']
+    for medicine in common_medicines:
+        if medicine in question:
+            medicine_names.append(medicine)
+    
+    return list(set(medicine_names))  # 중복 제거
+
+def remove_duplicate_documents(documents):
+    """중복 문서 제거"""
+    unique_docs = []
+    seen_contents = set()
+    
+    for doc in documents:
+        content = doc.page_content
+        if content not in seen_contents:
+            seen_contents.add(content)
+            unique_docs.append(doc)
+    
+    return unique_docs
 
 ################### 워크플로우 구성 ###################
 

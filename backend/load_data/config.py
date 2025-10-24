@@ -39,11 +39,10 @@ def load_json_documents(json_path):
     
     documents = []
     for item in data:
-        # 제품명을 제외한 모든 필드를 텍스트로 결합
+        # 제품명을 포함한 모든 필드를 텍스트로 결합
         content_parts = []
         for key, value in item.items():
-            if key != '제품명':
-                content_parts.append(f"{key}: {value}")
+            content_parts.append(f"{key}: {value}")
         
         content = "\n".join(content_parts)
         
@@ -62,6 +61,27 @@ def get_text_splitter():
         chunk_overlap=0,  # 오버랩 없음
         length_function=len
     )
+
+def add_product_name_to_chunks(chunks):
+    """각 청크에 제품명을 추가하여 모든 청크가 제품명을 포함하도록 함"""
+    processed_chunks = []
+    
+    for chunk in chunks:
+        # 원본 청크의 메타데이터에서 제품명 가져오기
+        product_name = chunk.metadata.get('제품명', 'Unknown')
+        
+        # 청크 내용 앞에 제품명 추가
+        enhanced_content = f"제품명: {product_name}\n\n{chunk.page_content}"
+        
+        # 새로운 청크 생성 (메타데이터는 그대로 유지)
+        enhanced_chunk = Document(
+            page_content=enhanced_content,
+            metadata=chunk.metadata
+        )
+        
+        processed_chunks.append(enhanced_chunk)
+    
+    return processed_chunks
 
 def get_embedding_model(platform='huggingface', return_platform_name=False):
     """
