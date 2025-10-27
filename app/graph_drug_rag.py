@@ -14,6 +14,9 @@ from embedding_utils import get_embedding_model
 from custom_pgvector import CustomPGVector
 from db_utils import make_conn_str
 
+_LLM_INSTANCE: ChatOllama | None = None
+_COMPILED_GRAPH = None
+
 class RAGState(TypedDict, total=False):
     """그래프 상태 정의"""
     question: str
@@ -28,9 +31,12 @@ class RAGState(TypedDict, total=False):
 
 def get_llm() -> ChatOllama:
     """ChatOllama LLM을 초기화"""
-    model = os.getenv("OLLAMA_MODEL")
-    temperature = float(os.getenv("GEN_TEMPERATURE", "0.2"))
-    return ChatOllama(model=model, temperature=temperature)
+    global _LLM_INSTANCE
+    if _LLM_INSTANCE is None:
+        model = os.getenv("OLLAMA_MODEL")
+        temperature = float(os.getenv("GEN_TEMPERATURE", "0.2"))
+        _LLM_INSTANCE = ChatOllama(model=model, temperature=temperature)
+    return _LLM_INSTANCE
 
 
 def get_vectorstore(collection_name: str) -> CustomPGVector:
@@ -179,9 +185,26 @@ def build_graph():
     return graph.compile()
 
 
+def get_compiled_graph():
+    """빌드된 그래프를 싱글턴으로 재사용"""
+    global _COMPILED_GRAPH
+    if _COMPILED_GRAPH is None:
+        _COMPILED_GRAPH = build_graph()
+    return _COMPILED_GRAPH
+
+
+def warm_up_pipeline() -> None:
+    """
+    LangGraph와 LLM을 미리 준비해 첫 사용자 입력 전에 초기화 비용을 지불합니다.
+    """
+    get_llm()
+    get_embedding_model()
+    get_compiled_graph()
+
+
 def run_once(question: str, collection_name: str = "drug_info", k: int = 4) -> Dict[str, Any]:
     """그래프를 한 번 실행하고 결과를 dict로 반환"""
-    app = build_graph()
+    app = get_compiled_graph()
     initial: RAGState = {"question": question, "collection_name": collection_name, "k": k}
     final_state = app.invoke(initial)
     return {
@@ -194,7 +217,7 @@ def run_once(question: str, collection_name: str = "drug_info", k: int = 4) -> D
 
 def run(collection_name: str = "drug_info", k: int = 4, exit_words: tuple[str, ...] = ("quit", "exit", "bye")) -> None:
     """사용자가 종료 단어를 입력할 때까지 반복 실행하는 인터랙티브 루프"""
-    app = build_graph()
+    app = get_compiled_graph()
     exit_words_lower = {word.lower() for word in exit_words}
     print(
         "💊 의약품 정보 RAG 챗봇입니다. 종료하려면 "
